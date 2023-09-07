@@ -11,6 +11,13 @@ defmodule OpenApiSpex.Cast.AllOf do
     new_ctx = put_in(ctx.schema.allOf, remaining)
 
     case Cast.cast(%{ctx | errors: [], schema: relaxed_schema}) do
+      {:ok, %module{} = value} when module in [Date, DateTime, NativeDateTime] ->
+        # allOf definitions with primitives are a little bit strange.
+        # we just return the cast for the first Schema, but validate
+        # the values against every other schema as well, since the value
+        # must be compatible with all Schemas
+        cast_all_of(new_ctx, acc || value)
+
       {:ok, value} when is_map(value) ->
         cast_all_of(new_ctx, Utils.merge_maps(acc || %{}, value))
 
